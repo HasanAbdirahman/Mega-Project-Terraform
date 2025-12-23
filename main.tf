@@ -326,7 +326,7 @@ resource "aws_route_table_association" "private_assoc" {
 # -------------------
 # Security Groups
 # -------------------
-# Cluster SG (used for both control plane and worker nodes)
+# Cluster SG (used for control plane)
 resource "aws_security_group" "devopsshack_cluster_sg" {
   vpc_id = aws_vpc.devopsshack_vpc.id
 
@@ -342,6 +342,28 @@ resource "aws_security_group" "devopsshack_cluster_sg" {
     Name = "devopsshack-cluster-sg"
   }
 }
+
+# Node Group SG 
+resource "aws_security_group" "devopsshack_node_sg" {
+  vpc_id = aws_vpc.devopsshack_vpc.id
+
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "devopsshack-node-sg"
+  }
 
 # -------------------
 # IAM Roles
@@ -446,9 +468,9 @@ resource "aws_eks_node_group" "devopsshack" {
 
   # Use only the cluster security group for nodes
   remote_access {
-    # SSH disabled for simplicity
-    ec2_ssh_key = null
-  }
+    ec2_ssh_key = var.ssh_key_name
+    source_security_group_ids = [aws_security_group.devopsshack_node_sg.id] 
+}
 
   depends_on = [aws_eks_cluster.devopsshack]
 }
