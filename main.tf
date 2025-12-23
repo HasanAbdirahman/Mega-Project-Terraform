@@ -326,10 +326,11 @@ resource "aws_route_table_association" "private_assoc" {
 # -------------------
 # Security Groups
 # -------------------
-# Cluster SG (EKS control plane)
+# Cluster SG (used for both control plane and worker nodes)
 resource "aws_security_group" "devopsshack_cluster_sg" {
   vpc_id = aws_vpc.devopsshack_vpc.id
 
+  # Allow all outbound traffic
   egress {
     from_port   = 0
     to_port     = 0
@@ -339,39 +340,6 @@ resource "aws_security_group" "devopsshack_cluster_sg" {
 
   tags = {
     Name = "devopsshack-cluster-sg"
-  }
-}
-
-# Node SG (workers)
-resource "aws_security_group" "devopsshack_node_sg" {
-  vpc_id = aws_vpc.devopsshack_vpc.id
-
-  # Only allow SSH from your IP
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["YOUR_PUBLIC_IP/32"]
-  }
-
-  # Allow all traffic from cluster SG
-  ingress {
-    from_port       = 0
-    to_port         = 0
-    protocol        = "-1"
-    security_groups = [aws_security_group.devopsshack_cluster_sg.id]
-    description     = "Allow cluster communication"
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "devopsshack-node-sg"
   }
 }
 
@@ -476,14 +444,16 @@ resource "aws_eks_node_group" "devopsshack" {
 
   instance_types = ["t3.medium"]
 
+  # Use only the cluster security group for nodes
   remote_access {
-    ec2_ssh_key              = var.ssh_key_name
-    source_security_group_ids = [aws_security_group.devopsshack_node_sg.id]
+    # SSH disabled for simplicity
+    ec2_ssh_key = null
   }
 
   depends_on = [aws_eks_cluster.devopsshack]
 }
-```
+'''
+'''
 
 ---
 
